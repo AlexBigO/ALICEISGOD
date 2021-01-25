@@ -15,8 +15,11 @@ double fitf(double *x, double *par1) {
       return res;
    }
    
+// par[0] = C
+// par[1] = p0
+// par[2] = n
 double plaw(double *x, double*par) {
-	double res = par[0]*pow(x[0],par[1]);
+	double res = par[0]*x[0]*TMath::Power( 1 + TMath::Power(x[0] / par[1] , 2) , - par[2] );
 	return res ;
 }
 
@@ -190,9 +193,9 @@ func->SetParameter(1,0.2);
 func->SetParNames("a","shift");
 func->SetLineColor(kViolet);
 
-TF1 *func2 = new TF1("Plaw",plaw,0,20,2);
-func2->SetParameters(0,-1);
-func2->SetParNames("a","k");	// y = a*x^k
+TF1 *func2 = new TF1("Plaw",plaw,0,20,3);
+func2->SetParameters(0.1 , 1 ,1);
+func2->SetParNames("C", "p0", "n");	// y = C x /(1 + (x/p0)²)^n 
 func2->SetLineColor(kGreen);
 
 TF1 *func3 = new TF1("bol",bol,0,20,2);
