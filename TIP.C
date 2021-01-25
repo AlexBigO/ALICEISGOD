@@ -15,8 +15,23 @@ double fitf(double *x, double *par1) {
       return res;
    }
    
-double plaw(double *x, double*par) {
-	double res = par[0]*pow(x[0],par[1]);
+// "Power law" distribution  
+// par[0] = C
+// par[1] = p0
+// par[2] = n
+double plaw(double *x, double*par) 
+{
+	double res = par[0]*x[0]*TMath::Power( 1 + TMath::Power(x[0] / par[1] , 2) , - par[2] );
+	return res ;
+}
+
+
+// Lévy-Tsallis distribution
+// par[0] = A
+// par[1] = T
+double levy_tsallis(double *x, double*par) 
+{
+	double res = par[0]*x[0]*exp(-x[0]/par[1]);
 	return res ;
 }
 
