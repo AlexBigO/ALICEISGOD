@@ -39,8 +39,7 @@ double expo_law(double *x , double *par)
 double boltzmann(double *x , double *par)
 {
 	double m_T = sqrt(x[0]*x[0] + par[1]*par[1]);
-	// double res = par[0]*par[1]*par[1]*exp(- (m_T - par[1]) / par[2]);    // version avec m_T au carré et pas p_T au carré
-	double res = par[0]*x[0]*x[0]*exp(- (m_T - par[1]) / par[2]);
+	double res = par[0]*x[0]*m_T*exp(- (m_T - par[1]) / par[2]);
 	return res;
 }
 
