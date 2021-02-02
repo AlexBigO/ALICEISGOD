@@ -79,6 +79,17 @@ double power_law_Seven(double *x, double*par)
 	return res ;
 }
 
+// Simpson method
+double simpson(TF1 *f, double *par, double a, double b, int n)   
+{
+    double h = (b-a) / n;
+    double z = 0;
+    for(int i = 0; i <= n-1  ; i++)
+    {
+        z = z + f(a + h*i, par) + 4*f( a + (2*i+1)*h/2 , par)  + f( a+h*(i+1) , par) ;
+    }
+    return h*z/6;
+}
 
 int main(){
 cout << " début " << endl ;
