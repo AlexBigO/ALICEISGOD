@@ -125,28 +125,29 @@ double blast_wave(double *x, double *par)
 
 
 
-int main(){
-	cout << " début " << endl ;
-
-// Création du fichier root de sortie et récupération du fichier root données
+int main()
+{
+	cout << " Beginning of the main() " << endl ;
+	
+// Creation of an input file (to retrieve the data) and of an ouput file
 	TString outputfilename="result.root" ;
 	TFile* OutputHisto = new TFile(outputfilename, "RECREATE");
 	TFile *myFile = new TFile("HEPData-1569102768-v1-root.root");
 
-// Récupération des différents histogrammes 
+// Retrieval of serveral histograms
 	TDirectoryFile* dirFile = (TDirectoryFile*)myFile->Get("Table 5");
 		TH1F* H1_pp=(TH1F*)dirFile->Get("Hist1D_y1");
 		TH1F* H1_pp_e1=(TH1F*)dirFile->Get("Hist1D_y1_e1");
 		TH1F* H1_pp_E1=(TH1F*)dirFile->Get("Hist1D_y1_e2");
-// Changement des noms d'axes et titres
+// Changing the names of axis and titles
 		//H1_pp->SetNameTitle(" Table 4 phi-meson" , "pT-distributions of phi-meson measured in p-pbar collisions at sNN = 5.02 TeV." );
 		H1_pp->SetXTitle("p_{T} [GeV/c]");
 		H1_pp->SetYTitle("(1/Nev)*d^2(N)/dPtdYrap  [Gev/c] ");
 
-//Récupération du scaling en prépartion du fit
+// Retrieval of the scale of each bin in order to normalize it for the fit
 	double Scale_Histo[11] ;
 	Scale_Histo[1]=H1_pp->Integral("width") ;
-// Compilations des différentes erreurs et ajout sur l'histogramme PT
+// Retrieval of the uncertainties for each bin and adding it into the histogram
 	int Nbinx = H1_pp->GetNbinsX();
 	for(int i = 0; i <= Nbinx  ; i++){
 		H1_pp->SetBinError(i, sqrt( pow(H1_pp_e1->GetBinContent(i),2) + pow(H1_pp_E1->GetBinContent(i),2) ) ) ;
@@ -156,7 +157,7 @@ int main(){
 	double b= H1_pp->GetBinLowEdge(Nbinx);
 	b += H1_pp->GetBinWidth(Nbinx);
 
-// Création des fonctions modèle pour le fit
+// Definition of the fitting functions
 			
 	TF1 *func1 = new TF1("expo_law",expo_law,0,b,3);
 		func1->SetParameter(0,Scale_Histo[1]);
@@ -214,14 +215,14 @@ int main(){
 		func6->SetLineColor(kBlue);
 
 
-// Création des canvas
+// Creation of the canvas
 	TCanvas *T1 = new TCanvas("Canvas 1" , " CANVAS_1_PP1 " , 200 , 200 );
 	T1->SetGrid();
 	T1->SetLogy();
 	gStyle->SetOptFit(0);
 	gStyle->SetOptStat(1111);
-// Sauvegarde des canvas dans l'output-histo-file càd notre result.root
-
+	
+// Saving the canvas in the ouput-histo-file i.e. result.root
 	OutputHisto->cd();
 
 // We fit the data with the different fitting functions
@@ -265,7 +266,8 @@ int main(){
 	//H1_pp->GetFunction("power_law_Seven")->SetLineColor(kRed);
 
 	//H1_pp->GetFunction("blast_wave")->SetLineColor(kBlue);
-// Ajout des résultats des fits sur le canvas
+	
+// Adding the results of the fit on the canvas
 	TLatex latex;
 		latex.SetNDC();
 		latex.SetTextSize(0.020);
@@ -290,7 +292,7 @@ int main(){
 		latex.DrawLatex(0.5,0.325, TString::Format("Parametre boltzmann T= %g GeV/c", func2->GetParameter(2)));
 		latex.DrawLatex(0.5,0.30, TString::Format("CHI2/NDF boltzmann = %g ", func2->GetChisquare()/func2->GetNDF()));
 	T1->Update();
-// Configuration de la légende
+// Configuration of the legend
 	auto legend = new TLegend(0.4,0.7,0.6,0.9);
 		//legend->SetHeader("The Legend Title","C"); // option "C" allows to center the header
 		legend->AddEntry(H1_pp,"Data","lep");
@@ -301,8 +303,9 @@ int main(){
 		//legend->AddEntry(func5, "Power law fit from [7]", "l");
 		//legend->AddEntry(func6,"Blast-wave model","l");
 		legend->Draw("SAMES");
-		
+	
+	T1->SetLogy();	 // log scale for the y axis (better visualization of the fit)		
 	T1->Write();
 	OutputHisto->Close();
-	cout << " fin " << endl ;
+	cout << " End of the main() " << endl ;
 }
