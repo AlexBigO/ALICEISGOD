@@ -144,7 +144,7 @@ int main()
 		H1_pp->SetXTitle("p_{T} [GeV/c]");
 		H1_pp->SetYTitle("(1/Nev)*d^2(N)/dPtdYrap  [Gev/c] ");
 
-// Retrieval of the scale of each bin in order to normalize it for the fit
+// Retrieval of the scale of the histogram to later guide the amplitude of the fitting functions 
 	double Scale_Histo[11] ;
 	Scale_Histo[1]=H1_pp->Integral("width") ;
 // Retrieval of the uncertainties for each bin and adding it into the histogram
