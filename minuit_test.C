@@ -184,7 +184,7 @@ double simpson(double f(double*,double*), double *par, double a, double b, int n
 // Data / Model fit 
 // We compute the ratio data/model for each bin of a given histogram hist
 // and store the values in tables
-void Data_Model(double X[], double Y[], double Xerr[], double Yerr[],double *par)
+void Data_Model(double X[], double Y[], double Xerr[], double Yerr[], double func(double *,double *), double *par)
 {
 	int n = 1000;
 	double data_value , model_value , model_error;
@@ -200,7 +200,7 @@ void Data_Model(double X[], double Y[], double Xerr[], double Yerr[],double *par
 		up_edge = hist->GetBinLowEdge(i);
 		bin_width = hist->GetBinWidth(i);
 		up_edge += bin_width;
-		integral = simpson(levy,par,low_edge,up_edge,n);
+		integral = simpson(func,par,low_edge,up_edge,n);
 		model_value = integral / bin_width;
 		model_error = TMath::Power((up_edge - low_edge)/n , 4) / bin_width;  // simpson error of order h^4
 	// then we compute the ratio data/model fit
@@ -303,14 +303,14 @@ int main()
 	double Xerr[Nbinx];  // we take into account the width of a bin (this is not an error strictly speaking!)
 	double Yerr[Nbinx];  // error on y axis
 	
-	Data_Model(X,Y,Xerr,Yerr,par);
+	Data_Model(X,Y,Xerr,Yerr,levy,par);
 	
 	//cout << "Yerr after = " <<  Yerr[Nbinx-1] << endl;
 	
 	TCanvas *c2 = new TCanvas("c2","c2",200,10,600,400);
 	c2->SetGrid();
 	// we create the graph to plot Data/Model fit with rectangle errors
-	TGraphErrors *dataModel = new TGraphErrors(Nbinx,X,Y,Xerr,Yerr);
+	TGraphErrors *dataModel = new TGraphErrors(20,X,Y,Xerr,Yerr);
 	dataModel->SetLineColor(2);
 	dataModel->SetLineWidth(2);
 	dataModel->SetMarkerColor(4);
