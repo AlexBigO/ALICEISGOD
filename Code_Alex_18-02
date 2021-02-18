@@ -1,0 +1,446 @@
+#include <TH2.h>
+#include <TStyle.h>
+#include <TCanvas.h>
+#include <TLatex.h>
+#include <stdbool.h>
+#include <vector>
+#include <iostream>
+#include <vector>
+#include <math.h> 
+#include <TRandom.h>
+#include <TColor.h>
+#include <TPaveStats.h>
+#include <TList.h>
+#include <TROOT.h>
+#include <TGraph.h>
+#include <TGraphErrors.h>
+#include <TArrow.h>
+#include <TMath.h>
+#include <TFile.h> 
+#include <TDirectoryFile.h>
+#include <TF1.h>
+#include <TLegend.h>
+#include <TGraph.h>
+#include <TGraphPainter.h>
+#include <TGraphErrors.h>
+#include <TMinuit.h>
+
+#if defined(__GLIBCXX__)
+#pragma link C++ class MyOtherClass;
+#endif
+
+
+using namespace std;
+
+
+
+TH1F *hist = 0 ;
+
+// we define the upper limit of the fitting range
+double const upper_limit = 3.5;
+
+// we defin the number of parameters of each function
+int const par_size_expo = 3;
+int const par_size_boltzmann = 3;
+int const par_size_levy = 4;
+int const par_size_blast_wave = 5;
+
+
+
+
+
+
+// Simpson integration method
+// Input parameters: 
+// f : the function we want to integrate; this is a user-defined function in our case (expo_law, boltzmann, ...)
+// par : the parameters of f; these will be the output parameters of the fit via f
+// [a,b] the integration range
+// n the number of points we consider such as (b-a)/n is the step of the integration
+double simpson(double f(double*,double*), double *par, double a, double b, int n)   
+{
+    double h = (b-a) / n;    // definition of the integration step
+    double z = 0;           // initialize the variable
+    // we define different pointers that we will use as input parameters for our f function
+    double *x = new double;  
+    double *x1 = new double;
+    double *x2 = new double;
+    for(int i = 0; i <= n-1  ; i++)
+    {
+        x[0] = a + i*h;   // x_i
+        x1[0] = a + (2*i+1)*h/2;  // ( x_{i} + x_{i+1} ) / 2
+        x2[0] = a + (i+1)*h;   // x_{i+1}
+        z = z + f(x, par) + 4*f(x1,par) + f(x2 , par);
+    }
+    return h*z/6;
+}
+
+
+
+
+
+double expo( double x , double *par)
+{
+	double m_T = sqrt(x*x + par[1]*par[1]);
+	double res = par[0]*TMath::Power( par[2]*(par[1]+par[2]), -1)*x*exp(- (m_T - par[1]) / par[2]);
+	return res;
+}
+
+		
+// Exponential law
+// par[0] = C
+// par[1] = m_0
+// par[2] = T
+double expo_law(double *x , double *par)
+{
+	double m_T = sqrt(x[0]*x[0] + par[1]*par[1]);
+	double res = par[0]*TMath::Power( par[2]*(par[1]+par[2]), -1)*x[0]*exp(- (m_T - par[1]) / par[2]);
+	return res;
+}
+
+
+// Boltzmann distribution
+// par[0] = C
+// par[1] = m_0
+// par[2] = T
+double boltzmann(double *x , double *par)
+{
+	double m_T = sqrt(x[0]*x[0] + par[1]*par[1]);
+	double res = par[0]*x[0]*m_T*exp(- (m_T - par[1]) / par[2]);
+	return res;
+}
+
+
+// Levy-Tsallis distribution
+// par[0] = C
+// par[1] = m
+// par[2] = T
+// par[3] = n
+
+double levy(double *x , double *par)
+{
+	double m_T = sqrt(x[0]*x[0] + par[1]*par[1]);
+	double res = par[0]*(par[3]-1)*(par[3]-2)/(par[3]*par[2]*(par[3]*par[2]+par[1]*(par[3]-2))) *x[0]*TMath::Power(1+(m_T - par[1]) / (par[3]*par[2]) , - par[3]);
+	return res;
+}
+
+
+// Power law from [5] in biblio
+// par[0] = C = dN / dy
+// par[1] = p_0
+// par[2] = n
+double power_law_Five(double *x , double *par)
+{
+	double res = par[0]*4*(par[2]-1)*(par[2]-2)*TMath::Power(par[2]-3,-2)*TMath::Power(par[1],-2)*x[0]*TMath::Power(1+ x[0] / (par[1]* (par[2]-3)/2 ) , - par[2]);
+	return res;
+}
+
+
+// "Power law" distribution  from [7] in biblio
+// par[0] = C
+// par[1] = p0
+// par[2] = n
+double power_law_Seven(double *x, double*par) 
+{
+	double res = par[0]*x[0]*TMath::Power( 1 + TMath::Power(x[0] / par[1] , 2) , - par[2] );
+	return res ;
+}
+
+
+
+// Blast-wave
+// par[0] = A, normalization constant
+// par[1] = m , the mass of the studied particle (which will be fixed)
+// par[2] = T , the kinetic freeze-out temperature
+// par[3] = n , the velocity profile
+// par[4] = beta_s
+double blast_wave(double *x , double *par)
+{
+    // x[0] = p_T  here
+// we define the variables and parameters
+	double a = 0.0;
+	double R = 12 ;
+	double b = R;
+	int n = 1000;	
+	double m_T = TMath::Sqrt(par[1]*par[1] + x[0]*x[0]);
+// we integrate over r
+	double h = (b-a) / n;
+	double z = 0;
+	double r_0 , r_1 , r_2;  
+	for(int i = 0; i <= n-1  ; i++)
+	{
+	    r_0 = a + i*h;   // x_i
+	    r_1 = a + (2*i+1)*h/2;  // ( x_{i} + x_{i+1} ) / 2               
+	    r_2 = a + (i+1)*h;   // x_{i+1}
+	    z +=  2*TMath::Pi()*par[0]*x[0]*m_T*
+	    (   r_0*TMath::BesselI0( x[0]*TMath::SinH( TMath::ATanH( TMath::Power( r_0 / R, par[3] ) * par[4]  )) / par[2] ) * TMath::BesselK1( m_T*TMath::CosH( TMath::ATanH(  TMath::Power( r_0 / R, par[3] ) * par[4] ) ) / par[2])     + 4*r_1*TMath::BesselI0( x[0]*TMath::SinH( TMath::ATanH( TMath::Power( r_1 / R, par[3] ) * par[4]  )) / par[2] ) * TMath::BesselK1( m_T*TMath::CosH( TMath::ATanH(  TMath::Power( r_1 / R, par[3] ) * par[4] ) ) / par[2])     + r_2*TMath::BesselI0( x[0]*TMath::SinH( TMath::ATanH( TMath::Power( r_2 / R, par[3] ) * par[4]  )) / par[2] ) * TMath::BesselK1( m_T*TMath::CosH( TMath::ATanH(  TMath::Power( r_2 / R, par[3] ) * par[4] ) ) / par[2])  );
+	}
+	z =  h*z/6;
+	return z;
+}
+
+
+
+
+
+
+// function that returns the number of the bin corresponding to the upper limit of the fitting range (b)
+int UpperBin_Fit(double Upper_limit)
+{
+	double a = hist->GetBinLowEdge(1); // lower edge of fitting range that is fixed	
+	double p_T = a;        // p_T is going to go from a to b to explore [a,b]             
+	int counter = 1;		// we begin by studying the first bin	
+	while(p_T < Upper_limit) 
+	{
+		p_T += hist->GetBinWidth(counter);
+		counter+=1;
+		//cout << "counter = " << counter << endl;
+		//cout << "p_T = " << p_T << endl;
+		//cout << " " << endl;
+
+	}
+	//cout << "UpperBin = " << counter << endl;
+	return counter-1;
+}
+
+
+
+void fcn_blast_wave(int &npar, double *gin, double &f, double *par, int iflag)
+{
+	f = 0.;
+	// we can modify the fitting range [a,b]
+	double a = hist->GetBinLowEdge(1); // lower limit of fitting range that is fixed	
+	double p_T = a;        // p_T is going to go from a to b to explore [a,b]             
+	int i = 1;		// we begin by studying the first bin
+	// when p_T > b, the minimization stops
+	for(int i=1;i<=UpperBin_Fit(upper_limit);i++)
+	{
+		double *x = new double ;
+		x[0] = hist->GetBinCenter(i);
+		double measure = hist->GetBinContent(i);
+		double error = hist->GetBinError(i);
+		double func = blast_wave(x,par);
+		double delta = (func - measure)/error;
+		f += delta*delta;	
+	}
+}
+
+
+
+
+
+
+
+
+
+// Data / Model fit 
+// We compute the ratio data/model for each bin of a given histogram hist
+// and store the values in tables
+void Data_Model(double X[], double Y[], double Xerr[], double Yerr[], double func(double *,double *), double *par, int par_size, double *covar)
+{
+	double data_value , model_value , model_error;
+	double integral, low_edge, up_edge, bin_width ;
+	int Upper_Bin = UpperBin_Fit(upper_limit);
+
+// we define a TF1 function and inject the fitted parameters
+// we use a TF1 function to have access to Integral() and IntegralError()
+	TF1 *f = new TF1("fit function",func,0,upper_limit,par_size);
+		f->SetParameters(par);
+	
+// we go through each bin of the fitting range	
+	for(int i=1;i<=Upper_Bin;i++) 
+	{
+	// for each bin, we get its content
+		data_value = hist->GetBinContent(i);
+	// we compute the mean value of the bin via the model
+	// i.e. we comute the integral of the model on the bin's width and divide by the bin's width
+		low_edge = hist->GetBinLowEdge(i);
+		up_edge = hist->GetBinLowEdge(i);
+		bin_width = hist->GetBinWidth(i);
+		up_edge += bin_width;
+		//integral = simpson(func,par,low_edge,up_edge,n);
+		integral = f->Integral(low_edge,up_edge);
+		model_value = integral / bin_width;
+		model_error = f->IntegralError(low_edge,up_edge,par,covar) / bin_width;
+	// then we compute the ratio data/model fit
+		Y[i-1] = data_value / model_value;
+	// we compute the uncertainty on this Y value via propagation of uncertainty
+	// considering the data and model uncertainties are uncorrelated 
+		Yerr[i-1] = TMath::Sqrt(  TMath::Power(hist->GetBinError(i) / model_value,2) + TMath::Power( data_value* model_error /(model_value*model_value) ,2) ) ; 
+	// we also get the center value of the bin for the future plot
+		X[i-1] = hist->GetBinCenter(i);
+		Xerr[i-1] = 0.5*bin_width;  // Xerr will represent the width of the bin (it is not an error strictly speaking)
+		cout << "iteration i = " << i << endl;
+		cout << "model_value = " << model_value << endl;
+		cout << "model error = " << f->IntegralError(low_edge,up_edge,par,covar) << endl;
+		cout << "bin error/model = " << hist->GetBinError(i) / model_value << endl;
+		cout << "Y " << Y[i-1] << endl;
+		cout << "Yerr " << Yerr[i-1] << endl;
+		cout << " " << endl;  
+	}	
+	
+}
+
+
+
+
+
+
+
+
+
+
+//-------------------------------------------------------------------------------------------------------
+int main()
+{
+	cout << " début " << endl ;
+
+// Création du fichier root de sortie et récupération du fichier root données
+	TString outputfilename="result.root" ;
+	TFile* OutputHisto = new TFile(outputfilename, "RECREATE");
+	TFile *myFile = new TFile("HEPData-1569102768-v1-root.root");
+
+	TString contours_1_sigma_output="contours_1_sigma.root";
+	TFile *Contours_1_sigma_output = new TFile(contours_1_sigma_output, "RECREATE");
+	TString contours_2_sigma_output="contours_2_sigma.root";
+	TFile *Contours_2_sigma_output = new TFile(contours_2_sigma_output, "RECREATE");
+
+// Récupération des différents histogrammes 
+	TDirectoryFile* dirFile = (TDirectoryFile*)myFile->Get("Table 5");
+		TH1F* H1_pp=(TH1F*)dirFile->Get("Hist1D_y1");
+		TH1F* H1_pp_e1=(TH1F*)dirFile->Get("Hist1D_y1_e1");
+		TH1F* H1_pp_E1=(TH1F*)dirFile->Get("Hist1D_y1_e2");
+// Changement des noms d'axes et titres
+		//H1_pp->SetNameTitle(" Table 4 phi-meson" , "pT-distributions of phi-meson measured in p-pbar collisions at sNN = 5.02 TeV." );
+		H1_pp->SetXTitle("p_{T} [GeV/c]");
+		H1_pp->SetYTitle("(1/Nev)*d^2(N)/dPtdYrap  [Gev/c] ");
+
+
+//Récupération du scaling en prépartion du fit
+	double Scale_Histo[11] ;
+	Scale_Histo[1]=H1_pp->Integral("width") ;
+// Compilations des différentes erreurs et ajout sur l'histogramme PT
+	int Nbinx = H1_pp->GetNbinsX();
+	for(int i = 0; i <= Nbinx  ; i++){
+		H1_pp->SetBinError(i, sqrt( pow(H1_pp_e1->GetBinContent(i),2) + pow(H1_pp_E1->GetBinContent(i),2) ) ) ;
+	}		
+	H1_pp->SetAxisRange(0,20,"X");
+	double a= H1_pp->GetBinLowEdge(1);
+	double b= H1_pp->GetBinLowEdge(Nbinx);
+	b += H1_pp->GetBinWidth(Nbinx);
+
+
+
+
+ 	hist = (TH1F *)dirFile->Get("Hist1D_y1");
+ 
+	TH1F* hist_e1=(TH1F*)dirFile->Get("Hist1D_y1_e1");
+	TH1F* hist_E1=(TH1F*)dirFile->Get("Hist1D_y1_e2");
+	hist->SetXTitle("p_{T} [GeV/c]");
+	hist->SetYTitle("(1/Nev)*d^2(N)/dPtdYrap  [Gev/c] ");
+	
+
+	for(int i = 0; i <= Nbinx  ; i++)
+	{
+		hist->SetBinError(i, sqrt( pow(hist_e1->GetBinContent(i),2) + pow(hist_E1->GetBinContent(i),2) ) ) ;
+	}	
+	
+	
+	TMinuit *gMinuit = new TMinuit(par_size_blast_wave);
+	gMinuit->SetFCN(fcn_blast_wave);
+	gMinuit->DefineParameter(0, "C", 72, 0.1, 0, 100000);
+	gMinuit->FixParameter(0);
+	gMinuit->DefineParameter(1, "m_0",0.938, 0.01, 0.1,1);
+	gMinuit->FixParameter(1);
+	gMinuit->DefineParameter(2, "T", 0.1, 0.01, 0.02, 1);
+	gMinuit->DefineParameter(3, "n", 1.5, 0.1, 0, 10);
+	//gMinuit->FixParameter(3);	
+	gMinuit->DefineParameter(4, "beta_s", 0.5, 0.01, 0.1, 1);
+	gMinuit->Command("MIGRAD");
+	gMinuit->Command("MINOS");
+	double static par[5],err[5];
+	for(int i=0;i<5;i++){
+		gMinuit->GetParameter(i,par[i],err[i]);
+	}
+	
+	TH1F* curve = new TH1F("curve","curve",UpperBin_Fit(upper_limit),0,upper_limit);
+	
+
+	for(int i=1;i<=UpperBin_Fit(upper_limit);i++) 
+	{		
+		double *x = new double ;
+		x[0] = curve->GetBinCenter(i);
+		double f = blast_wave(x,par);
+		curve->SetBinContent(i,f);
+		//cout << "i" << i << endl;
+		//cout << " " << endl;
+	} 
+	curve->SetLineWidth(3);
+	hist->Draw();
+	curve->Draw("csame");
+	
+
+
+//-------------------------------------------------------------------------------------------------
+// DATA / MODEL FIT
+
+	double X[Nbinx];  // x axis of the plot
+	double Y[Nbinx];  // y axis of the plot
+	double Xerr[Nbinx];  // we take into account the width of a bin (this is not an error strictly speaking!)
+	double Yerr[Nbinx];  // error on y axis	
+
+// we get the covariant matrix from the Tminuit instance
+	int npars = gMinuit->GetNumPars();
+	double *covar = new double[npars*npars];
+	gMinuit->mnemat(covar,npars);	
+
+
+// we call the Data/Model fit function
+	Data_Model(X,Y,Xerr,Yerr,blast_wave,par,par_size_blast_wave,covar);
+
+// we define a canvas to plot the Data/Model values for each bin in the fitting range	
+	TCanvas *c2 = new TCanvas("c1","multipads",900,700);
+	gStyle->SetPadBorderMode(0);
+	gStyle->SetFrameBorderMode(0);
+	gStyle->SetOptStat(0);
+	float small = 1e-5;
+	c2->Divide(1,2,small,small);
+	TH2F *h1 = new TH2F("h1","test1",10,0,1,20,1,20);
+	TH2F *h2 = new TH2F("h2","test2",10,0,1,20,0,19);
+	
+	
+	// we create the graph to plot Data/Model fit with rectangle errors for phi mesons
+	c2->cd(1);
+	gPad->SetTickx(2);
+	gPad->SetBottomMargin(small); 
+	gPad->SetTickx();
+        //gPad->SetTicky(1);
+   	h2->GetYaxis()->SetLabelOffset(0.01);
+ 	h2->Draw();
+   	
+   	// we create the graph to plot Data/Model fit with rectangle errors for p+pbar
+	c2->cd(2); 
+	gPad->SetTopMargin(small);
+   
+   	TGraphErrors *dataModel = new TGraphErrors(UpperBin_Fit(upper_limit),X,Y,Xerr,Yerr);
+	dataModel->SetLineColor(2);
+	dataModel->SetLineWidth(2);
+	dataModel->SetMarkerColor(4);
+	dataModel->SetMarkerSize(1);
+	dataModel->SetMarkerStyle(21);
+	dataModel->SetTitle(" ; p_T (GeV/c); Data / model fit");
+	dataModel->SetLineWidth(2);
+	dataModel->GetXaxis()->SetLimits(0.2,upper_limit+hist->GetBinWidth(UpperBin_Fit(upper_limit)));
+	dataModel->Draw("A5");   // A has to be there (if not, nothing appears on the canvas) & 5 is to plot error rectangles
+	dataModel->Draw("PX");   // P is to put the chosen marker & X to remove the error bars (leave only the rectangles)	
+// we plot a line at y=1 to show the deviation to Data = Model fit
+	TLine *line = new TLine(a,1,upper_limit+hist->GetBinWidth(UpperBin_Fit(upper_limit)),1);
+	line->SetLineColor(30);
+	line->SetLineWidth(3);
+	line->SetLineStyle(2);
+	line->Draw("SAME");
+	
+
+
+	OutputHisto->Close();
+	cout << " fin " << endl ;
+}
