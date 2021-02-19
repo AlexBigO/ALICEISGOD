@@ -35,10 +35,12 @@ void contours()
 
 // we define a canvas
 	TCanvas *T1 = new TCanvas("T1","Contours",200,200);
-
+	gStyle->SetPadBorderMode(0);
+	gStyle->SetFrameBorderMode(0);
+	gStyle->SetOptStat(0);
 // il manque des options gstyle ou gpad
 
-// we define the graphs for each contour 
+// we define a TGraph for each contour 
 	TGraph *ppbar_1sigma[10];
 	TGraph *ppbar_2sigma[10];
 	TGraph *phi_1sigma[10];
@@ -59,23 +61,23 @@ void contours()
 	{
 	// we do it for the 1sigma contours
 		ppbar_1sigma_name[21] = digit+'0';
-		ppbar_1sigma[digit] = (TGraph*)ppbarFile->Get("ppbar_1sigma_name") ; 
-		ppbar_1sigma[digit]->Draw();   // the "A" option has to be there ! 
+		ppbar_1sigma[digit] = (TGraph*)ppbarFile->Get(ppbar_1sigma_name) ; 
+		ppbar_1sigma[digit]->Draw();   
 		mg->Add(ppbar_1sigma[digit]);
 	// we do it for the 2sigma contours
 		ppbar_2sigma_name[21] = digit+'0';
-		ppbar_2sigma[digit] = (TGraph*)ppbarFile->Get("ppbar_2sigma_name") ; 
-		ppbar_2sigma[digit]->Draw();   // the "A" option has to be there ! 
+		ppbar_2sigma[digit] = (TGraph*)ppbarFile->Get(ppbar_2sigma_name) ; 
+		ppbar_2sigma[digit]->Draw();   
 		mg->Add(ppbar_2sigma[digit]);
 	}
 	
 	
 // we add the 10th pair of contours	
-	ppbar_1sigma[10] = (TGraph*)ppbarFile->Get("ppbar_1sigma_contour_10") ; 
-	ppbar_1sigma[10]->Draw();   // the "A" option has to be there ! 
+	ppbar_1sigma[10] = (TGraph*)ppbarFile->Get(ppbar_1sigma_contour_10) ; 
+	ppbar_1sigma[10]->Draw();  
 	mg->Add(ppbar_1sigma[10]);	
-	ppbar_2sigma[10] = (TGraph*)ppbarFile->Get("ppbar_2sigma_contour_10") ; 
-	ppbar_1sigma[10]->Draw();   // the "A" option has to be there ! 
+	ppbar_2sigma[10] = (TGraph*)ppbarFile->Get(ppbar_2sigma_contour_10) ; 
+	ppbar_1sigma[10]->Draw();   
 	mg->Add(ppbar_2sigma[10]);
 	
 	
@@ -89,30 +91,30 @@ void contours()
 	for(int digit=1;digit<=10;digit++)
 	{
 	// we do it for the 1sigma contours
-		phi_1sigma_name[21] = digit+'0';
-		phi_1sigma[digit] = (TGraph*)phiFile->Get("phi_1sigma_name") ; 
-		phi_1sigma[digit]->Draw();   // the "A" option has to be there ! 
+		phi_1sigma_name[19] = digit+'0';
+		phi_1sigma[digit] = (TGraph*)phiFile->Get(phi_1sigma_name) ; 
+		phi_1sigma[digit]->Draw();   
 		mg->Add(phi_1sigma[digit]);
 	// we do it for the 2sigma contours
-		phi_2sigma_name[21] = digit+'0';
-		phi_2sigma[digit] = (TGraph*)phiFile->Get("phi_2sigma_name") ; 
-		phi_2sigma[digit]->Draw();   // the "A" option has to be there ?! 
+		phi_2sigma_name[19] = digit+'0';
+		phi_2sigma[digit] = (TGraph*)phiFile->Get(phi_2sigma_name) ; 
+		phi_2sigma[digit]->Draw();   
 		mg->Add(phi_2sigma[digit]);
 	}
 	
 	
 // we add the 10th pair of contours	
-	phi_1sigma[10] = (TGraph*)phiFile->Get("phi_1sigma_contour_10") ; 
+	phi_1sigma[10] = (TGraph*)phiFile->Get(phi_1sigma_contour_10) ; 
 	phi_1sigma[10]->Draw();   // the "A" option has to be there ! 
 	mg->Add(phi_1sigma[10]);	
-	phi_2sigma[10] = (TGraph*)phiFile->Get("phi_2sigma_contour_10") ; 
+	phi_2sigma[10] = (TGraph*)phiFile->Get(phi_2sigma_contour_10) ; 
 	phi_1sigma[10]->Draw();   // the "A" option has to be there ?! 
 	mg->Add(phi_2sigma[10]);
 
 //------------------------------------------------------
 //------------------------------------------------------	
 // we draw the multigraph
-	mg->Draw("A");	  // the "A" option has to be there ?! 
+	mg->Draw("A");	  
 // change the axis limits
 	gpad->Modified();   
 	mg->GetXaxis()->SetLimits(0.3,0.9); // we limit the x axis range
@@ -132,10 +134,9 @@ void contours()
 	latex.DrawLatex(0.8,0.2, "0-5%");    // bottom right of the plot
 // we indicate the color code
 	latex.DrawLatex(0.5,0.65, "Blast-wave fit to");
-	latex.DrawLatex(0.5,0.5, "#phi (?-? GeV/c) in dotted lines");
-	latex.DrawLatex(0.5,0.4, "p+#bar{p} (0.3-3 GeV/c) in full lines");
-	latex.DrawLatex(0.5,0.3, "#color[4]{1#sigma contour}");   // 4 is blue
-	latex.DrawLatex(0.5,0.2, "#color[2]{2#sigma contour}");   // 2 is blue
+	latex.DrawLatex(0.5,0.5, "#phi (?-? GeV/c) in dotted lines, p+#bar{p} (0.3-3 GeV/c) in full lines");
+	latex.DrawLatex(0.5,0.5, "#color[4]{1#sigma contour}");   // 4 is blue
+	latex.DrawLatex(0.5,0.5, "#color[2]{2#sigma contour}");   // 2 is blue
 	
 // we close the files
 	ppbarFile->Close();
