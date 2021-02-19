@@ -132,7 +132,10 @@ void contours()
 	latex.DrawLatex(0.8,0.2, "0-5%");    // bottom right of the plot
 // we indicate the color code
 	latex.DrawLatex(0.5,0.65, "Blast-wave fit to");
-	latex.DrawLatex(0.5,0.5, "#phi (?-? GeV/c), p+#bar{p} (0.3-3 GeV/c)");
+	latex.DrawLatex(0.5,0.5, "#phi (?-? GeV/c) in dotted lines");
+	latex.DrawLatex(0.5,0.4, "p+#bar{p} (0.3-3 GeV/c) in full lines");
+	latex.DrawLatex(0.5,0.3, "#color[4]{1#sigma contour}");   // 4 is blue
+	latex.DrawLatex(0.5,0.2, "#color[2]{2#sigma contour}");   // 2 is blue
 	
 // we close the files
 	ppbarFile->Close();
