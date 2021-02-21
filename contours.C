@@ -85,10 +85,10 @@ void contours()
 //------------------------------------------------------
 //----------------- phi mesons -----------------------------	
 //------------------------------------------------------
-// we explorate the ppbar file in order to get the 9 first pairs of contours it contains
+// we explorate the ppbar file in order to get the 8 pairs of contours it contains
 	char phi_1sigma_name = "phi_1sigma_contour_X";
 	char phi_2sigma_name = "phi_2sigma_contour_X";
-	for(int digit=1;digit<=10;digit++)
+	for(int digit=1;digit<=8;digit++)
 	{
 	// we do it for the 1sigma contours
 		phi_1sigma_name[19] = digit+'0';
@@ -101,15 +101,7 @@ void contours()
 		phi_2sigma[digit]->Draw();   
 		mg->Add(phi_2sigma[digit]);
 	}
-	
-	
-// we add the 10th pair of contours	
-	phi_1sigma[10] = (TGraph*)phiFile->Get(phi_1sigma_contour_10) ; 
-	phi_1sigma[10]->Draw();   // the "A" option has to be there ! 
-	mg->Add(phi_1sigma[10]);	
-	phi_2sigma[10] = (TGraph*)phiFile->Get(phi_2sigma_contour_10) ; 
-	phi_1sigma[10]->Draw();   // the "A" option has to be there ?! 
-	mg->Add(phi_2sigma[10]);
+
 
 //------------------------------------------------------
 //------------------------------------------------------	
