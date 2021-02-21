@@ -69,7 +69,7 @@ void data_model()
 		ppbar[digit]->Draw();   
 		mg_ppbar->Add(ppbar[digit]);
 	}	
-// we add the 10th pair of contours	
+// we add the 10th graph	
 	ppbar[10] = (TGraph*)ppbarFile->Get(ppbar_data_model_10) ; 
 	ppbar[10]->Draw();  
 	mg_ppbar->Add(ppbar[10]);	
@@ -80,19 +80,16 @@ void data_model()
 //------------------------------------------------------
 //----------------- phi --------------------------------	
 //------------------------------------------------------
-// we explorate the ppbar file in order to get the 9 first graphs it contains
+// we explorate the ppbar file in order to get the 8 graphs it contains
 	char phi_name = "phi_data_model_X";
-	for(int digit=1;digit<=9;digit++)
+	for(int digit=1;digit<=8;digit++)
 	{
 		phi_name[15] = digit+'0';
 		phi[digit] = (TGraph*)ppbarFile->Get(phi_name) ; 
 		phi[digit]->Draw();   
 		mg_phi->Add(phi[digit]);
 	}	
-// we add the 10th pair of contours	
-	phi[10] = (TGraph*)ppbarFile->Get(phi_data_model_10) ; 
-	phi[10]->Draw();  
-	mg_phi->Add(phi[10]);
+
 
 
 
